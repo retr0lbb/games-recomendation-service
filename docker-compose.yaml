@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  neo4j:
+    image: neo4j:5
+    container_name: neo4j
+    restart: unless-stopped
+
+    ports:
+      - "7474:7474" # Neo4j Browser (web)
+      - "7687:7687" # Bolt (driver)
+
+    environment:
+      - NEO4J_AUTH=neo4j/password
+      - NEO4J_dbms_security_auth__enabled=true
+
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/import
+      - neo4j_plugins:/plugins
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_import:
+  neo4j_plugins:
