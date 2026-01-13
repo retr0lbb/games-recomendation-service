@@ -9,15 +9,24 @@ export class PlayerService {
 
   async create(createPlayerDto: CreatePlayerDto) {
     const newPlayerId = crypto.randomUUID()
-    
+
     const query = `
-      CREATE(p:Player {name: $name, id: $id})
+      MERGE (p:Player { id: $id })
+      SET p.name = $name
+
+      WITH p
+
+      UNWIND $platforms as plat
+       MATCH (pt:Platform { id: toInteger(plat) })
+       MERGE (p)-[:OWNS {gameCount: 0}]->(pt)
+
       RETURN p
     `
 
     const params = {
       name: createPlayerDto.name,
-      id: newPlayerId
+      id: newPlayerId,
+      platforms: createPlayerDto.platforms
     }
 
     const result = await this.neo4jService.getSession().run(query, params)

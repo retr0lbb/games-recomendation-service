@@ -71,7 +71,7 @@ export class GamesService {
       WITH g
 
       UNWIND $platforms AS platform
-        MERGE (p:Platform { id: platform.id })
+        MERGE (p:Platform { id: toInteger(platform.id) })
         SET
           p.name = platform.name,
           p.slug = platform.slug
