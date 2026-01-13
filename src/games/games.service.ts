@@ -70,7 +70,41 @@ export class GamesService {
       }
     }))
 
-    console.log(results)
+    const query = `
+      UNWIND $games AS game
+
+      MERGE (g:Game {id: toInteger(game.id)})
+      SET g += {
+        title: game.title,
+        slug: game.slug,
+        imageUrl: game.imageUrl,
+        releaseDate: game.released,
+        metacriticScore: game.metacriticScore,
+        summary: game.summary
+      }
+
+      WITH g, game
+
+      UNWIND game.genres AS genre
+        MERGE (ge:Genre {id: toInteger(genre.id)})
+        SET ge.name = genre.name,
+            ge.slug = genre.slug
+        MERGE (g)-[:HAS_GENRE]->(ge)
+
+      WITH g, game
+
+      UNWIND game.platforms AS platform
+        MERGE (p:Platform {id: toInteger(platform.id)})
+        SET p.name = platform.name,
+            p.slug = platform.slug
+        MERGE (g)-[:AVAILABLE_ON]->(p)
+
+    `
+
+    await this.neo4jService.getSession().run(query, {
+      games: results
+    })
+
   }
 
   async createOrUpdate(game: GameDto){

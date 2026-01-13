@@ -99,7 +99,6 @@ export class PlayerService {
   }
 
   async updatePlayStatus(userId: string, gameId: number, body: UpdatePlayerStatusDto){
-    // Query para marcar como FINISHED (quando estava IS_PLAYING)
     const queryToFinished = `
       MATCH (p:Player {id: $userId})-[old:IS_PLAYING]->(g:Game {id: toInteger($gameId)})
       WITH p, g, old, old.hours_played AS hours, old.currentScore AS score
@@ -112,7 +111,6 @@ export class PlayerService {
       RETURN p, new, g
     `
 
-    // Query para voltar a IS_PLAYING (quando estava FINISHED)
     const queryToPlaying = `
       MATCH (p:Player {id: $userId})-[old:FINISHED]->(g:Game {id: toInteger($gameId)})
       DELETE old
@@ -123,7 +121,6 @@ export class PlayerService {
       RETURN p, new, g
     `
 
-    // Se o novo status é "has_finished", marca como FINISHED
     if(body.status === "has_finished"){
       const result = await this.neo4jService.getSession().run(queryToFinished, {
         userId: userId, 
