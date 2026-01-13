@@ -1,11 +1,11 @@
-import { Injectable, OnModuleDestroy } from "@nestjs/common";
+import { Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Driver, Session } from "neo4j-driver";
 import neo4j from "neo4j-driver"
 
 
 @Injectable()
-export class Neo4jService implements OnModuleDestroy{
+export class Neo4jService{
     private driver: Driver
 
     constructor(private configService: ConfigService) {
@@ -18,9 +18,13 @@ export class Neo4jService implements OnModuleDestroy{
             ),
         );
     }
-
+    
     getSession(): Session{
         return this.driver.session()
+    }
+
+    async close(){
+        await this.driver.close()
     }
 
     async setUp(){
@@ -36,10 +40,7 @@ export class Neo4jService implements OnModuleDestroy{
             REQUIRE p.name IS UNIQUE;
         `
 
-        
+        await connection.run(query)
     }
 
-    async onModuleDestroy() {
-        await this.driver.close()
-    }
 }
