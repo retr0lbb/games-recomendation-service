@@ -6,9 +6,10 @@ import { Neo4jModule } from './neo4j/neo4j.module';
 import { GamesModule } from './games/games.module';
 import { RawgModule } from './rawg/rawg.module';
 import { ConfigModule } from '@nestjs/config';
+import { PlayerModule } from './player/player.module';
 
 @Module({
-  imports: [RecomendationsModule, Neo4jModule, GamesModule, RawgModule, ConfigModule.forRoot({isGlobal: true})],
+  imports: [RecomendationsModule, Neo4jModule, GamesModule, RawgModule, ConfigModule.forRoot({isGlobal: true}), PlayerModule],
   controllers: [AppController],
   providers: [AppService],
 })

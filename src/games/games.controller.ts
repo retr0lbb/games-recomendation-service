@@ -18,4 +18,18 @@ export class GamesController {
     
   }
 
+  @Get("/")
+  async getAllGames(){
+    const games = await this.gamesService.getAll()
+
+    return {games}
+  }
+
+  @Get("/:id")
+  async getGameById(@Param("id") id: number){
+    const game = await this.gamesService.getGameById(id)
+
+    return { game }
+  }
+
 }

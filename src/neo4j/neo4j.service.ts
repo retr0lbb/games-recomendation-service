@@ -23,6 +23,22 @@ export class Neo4jService implements OnModuleDestroy{
         return this.driver.session()
     }
 
+    async setUp(){
+        const connection = this.getSession()
+
+        const query = `
+            CREATE CONSTRAINT game_id_unique IF NOT EXISTS
+            FOR (g:Game)
+            REQUIRE g.id IS UNIQUE;
+
+            CREATE CONSTRAINT player_username_unique IF NOT EXISTS
+            FOR (p:Player)
+            REQUIRE p.name IS UNIQUE;
+        `
+
+        
+    }
+
     async onModuleDestroy() {
         await this.driver.close()
     }

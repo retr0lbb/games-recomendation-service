@@ -48,14 +48,16 @@ export class GamesService {
 
   async createOrUpdate(game: GameDto){
     const query = `
+
       MERGE(g:Game {id: $id})
-      SET 
-        g.title = $title,
-        g.slug = $slug,
-        g.imageUrl = $url,
-        g.releaseDate = $relese,
-        g.metacriticScore = $score,
-        g.summary = $summary
+      SET g+={
+        title: $title,
+        slug: $slug,
+        imageUrl: $url,
+        releaseDate: $release,
+        metacriticScore: $score,
+        summary: $summary
+      } 
 
       WITH g
 
@@ -78,8 +80,8 @@ export class GamesService {
       RETURN g
     `
     const params = {
-      id: game.id,
-      relese: game.released,
+      id: Number(game.id),
+      release: game.released,
       title: game.title,
       slug: game.slug,
       url: game.imageUrl,
@@ -91,5 +93,42 @@ export class GamesService {
 
     const result = await this.neo4jService.getSession().run(query, params)
     return result.records[0].get('g').properties;
+  }
+
+  async getAll(){
+    const query = `
+      MATCH(g:Game) return g;
+    `
+
+    const result = await this.neo4jService.getSession().run(query)
+
+    const gamesObj = result.records.map(record =>{
+      const game = record.get("g")
+
+      return game.properties
+    })
+
+    return gamesObj
+  }
+
+  async getGameById(gameId: number){
+    const query = `
+      MATCH (g:Game)
+        WHERE toInteger(g.id) = toInteger($id)
+        RETURN g
+    `
+    const params = {
+      id: gameId
+    }
+
+    const result = await this.neo4jService.getSession().run(query, params)
+
+    const gamesObj = result.records.map(record =>{
+      const game = record.get("g")
+
+      return game.properties
+    })
+
+    return gamesObj
   }
 }
