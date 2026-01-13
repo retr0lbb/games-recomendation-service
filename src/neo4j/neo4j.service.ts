@@ -28,19 +28,30 @@ export class Neo4jService{
     }
 
     async setUp(){
-        const connection = this.getSession()
 
-        const query = `
+        const query1 = `
             CREATE CONSTRAINT game_id_unique IF NOT EXISTS
             FOR (g:Game)
             REQUIRE g.id IS UNIQUE;
-
+        `
+        const query2 = `
             CREATE CONSTRAINT player_username_unique IF NOT EXISTS
             FOR (p:Player)
             REQUIRE p.name IS UNIQUE;
         `
 
-        await connection.run(query)
+        const session = this.getSession();
+        const tx = session.beginTransaction();
+        try {
+            await tx.run(query1);
+            await tx.run(query2);
+            await tx.commit();
+        } catch (e) {
+            await tx.rollback();
+            throw e;
+        } finally {
+            await session.close();
+        }
     }
 
 }

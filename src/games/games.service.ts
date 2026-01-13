@@ -3,6 +3,7 @@ import type { ImportBulkyFromRawgDto } from './dto/import-bulky-rawg.dto';
 import { RawgService } from 'src/rawg/rawg.service';
 import { GameDto } from './dto/game.dto';
 import { Neo4jService } from 'src/neo4j/neo4j.service';
+import { SetPlayerGameBodyDTO } from './dto/setPlayerGame';
 
 @Injectable()
 export class GamesService {
@@ -49,7 +50,7 @@ export class GamesService {
   async createOrUpdate(game: GameDto){
     const query = `
 
-      MERGE(g:Game {id: $id})
+      MERGE(g:Game {id: toInteger($id)})
       SET g+={
         title: $title,
         slug: $slug,
@@ -130,5 +131,41 @@ export class GamesService {
     })
 
     return gamesObj
+  }
+
+  async createPlayerGame(userId: string, data: SetPlayerGameBodyDTO){
+    console.log("User Id ", userId)
+    console.log(data)
+    const query = `
+      MATCH (p:Player { id: $userId })
+      MATCH (g:Game { id: $gameId })
+
+      FOREACH (_ IN CASE WHEN $status = 'has_finished' THEN [1] ELSE [] END |
+        MERGE (p)-[r:FINISHED]->(g)
+        SET r.hours_played = $hours,
+            r.finishedAt = $finishedAt,
+            r.score = $score
+      )
+
+      FOREACH (_ IN CASE WHEN $status = 'is_playing' THEN [1] ELSE [] END |
+        MERGE (p)-[r:IS_PLAYING]->(g)
+        SET r.hours_played = $hours,
+            r.currentScore = $score
+      )
+
+      RETURN p, g
+    `
+
+    const params = {
+      userId,
+      gameId: data.gameId,
+      status: data.status,
+      hours: Number(data.hours_played ?? 0),
+      finishedAt: data.finishedAt
+        ? new Date(data.finishedAt).toISOString()
+        : null,
+      score: data.score !== undefined ? Number(data.score) : null
+    }
+    const result = await this.neo4jService.getSession().run(query, params)
   }
 }
