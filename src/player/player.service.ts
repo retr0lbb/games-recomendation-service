@@ -4,6 +4,7 @@ import { Neo4jService } from 'src/neo4j/neo4j.service';
 import crypto from "node:crypto"
 import { AddGameToPlayerDto } from './dto/setPlayerGame';
 import { resourceLimits } from 'node:worker_threads';
+import { UpdatePlayerStatusDto } from './dto/update-play-status';
 
 @Injectable()
 export class PlayerService {
@@ -97,26 +98,53 @@ export class PlayerService {
     const result = await this.neo4jService.getSession().run(query, params)
   }
 
-  async updatePlayStatus(userId: string, gameId: string, score?: number){
-    const query = `
-      MATCH (p:Player {id: $userId})-[old:IS_PLAYING]->(g:Game {id: $gameId})
+  async updatePlayStatus(userId: string, gameId: number, body: UpdatePlayerStatusDto){
+    // Query para marcar como FINISHED (quando estava IS_PLAYING)
+    const queryToFinished = `
+      MATCH (p:Player {id: $userId})-[old:IS_PLAYING]->(g:Game {id: toInteger($gameId)})
+      WITH p, g, old, old.hours_played AS hours, old.currentScore AS score
       DELETE old
       CREATE (p)-[new:FINISHED {
-        hours_played: old.hours_played,
-        score: old.currentScore,
+        hours_played: hours,
+        score: score,
         finishedAt: datetime()
       }]->(g)
       RETURN p, new, g
     `
-  
-    const params = {
-      userId: userId,
-      gameId: gameId
+
+    // Query para voltar a IS_PLAYING (quando estava FINISHED)
+    const queryToPlaying = `
+      MATCH (p:Player {id: $userId})-[old:FINISHED]->(g:Game {id: toInteger($gameId)})
+      DELETE old
+      CREATE (p)-[new:IS_PLAYING {
+        currentScore: $score, 
+        hours_played: $hours
+      }]->(g)
+      RETURN p, new, g
+    `
+
+    // Se o novo status é "has_finished", marca como FINISHED
+    if(body.status === "has_finished"){
+      const result = await this.neo4jService.getSession().run(queryToFinished, {
+        userId: userId, 
+        gameId: gameId
+      })
+      
+      return result.records[0].toObject()
     }
 
-    const result = await this.neo4jService.getSession().run(query, params)
+    // Se o novo status é "is_playing", marca como IS_PLAYING
+    if(body.status === "is_playing"){
+      const result = await this.neo4jService.getSession().run(queryToPlaying, {
+        userId: userId, 
+        gameId: gameId, 
+        score: body.updateScore ?? 0, 
+        hours: body.hoursPlaying ?? 0
+      })
+      
+      return result.records[0].toObject()
+    }
   
-    return result.records[0]
   }
 
   async getPlayerGames(playerId: string){

@@ -3,6 +3,7 @@ import { PlayerService } from './player.service';
 import { ZodValidationPipe } from 'src/zod.pipe';
 import { type CreatePlayerDto, createPlayerDtoSchema } from './dto/create-player.dto';
 import { addGameToPlayer, type AddGameToPlayerDto } from './dto/setPlayerGame';
+import { type UpdatePlayerStatusDto, updatePlayStatusSchema } from './dto/update-play-status';
 
 @Controller('player')
 export class PlayerController {
@@ -37,8 +38,14 @@ export class PlayerController {
   }
 
   @Put("/:userId/game/:gameId")
-  async updateGameplayStatus(@Param("userId") userId: string, @Param("gameId") gameId: number){
+  async updateGameplayStatus(
+    @Param("userId") userId: string, 
+    @Param("gameId") gameId: number, 
+    @Body(new ZodValidationPipe(updatePlayStatusSchema)) body: UpdatePlayerStatusDto){
+      
+      const result = await this.playerService.updatePlayStatus(userId, gameId, body)
 
+      return result
   }
   
 }
