@@ -11,19 +11,6 @@ export class GamesController {
   async importFromRawg(@Param("rawgId") rawgId: number) {
     return await this.gamesService.importFromRawg(rawgId)
   }
-  
-
-  @Post("/:userId")
-  async setPlayerGame(@Param("userId") userId: string, @Body(new ZodValidationPipe(setPlayerGameSchema)) body: SetPlayerGameBodyDTO) {
-    await this.gamesService.createPlayerGame(userId, body)
-
-    const response = {
-      status: 201,
-      message: "relation created with success"
-    }
-
-    return response
-  }
 
   @Get("/")
   async getAllGames(){

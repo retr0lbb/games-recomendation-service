@@ -8,6 +8,7 @@ import { SetPlayerGameBodyDTO } from './dto/setPlayerGame';
 @Injectable()
 export class GamesService {
   constructor(private  readonly rawgService: RawgService, private readonly neo4jService: Neo4jService) {}
+  
   async importFromRawg(gameId: number){
     const game = await this.rawgService.getGameById(gameId)
 
@@ -37,14 +38,39 @@ export class GamesService {
 
     const result = await this.createOrUpdate(betterGame)
 
-    console.log(result)
-
-
     return result
   }
 
-  importFromRawgBulky(dto: ImportBulkyFromRawgDto){
+  async importFromRawgBulky(dto: ImportBulkyFromRawgDto){
+    const results = await Promise.all(dto.gamesIds.map(async (id) => {
+      const game = await this.rawgService.getGameById(id)
 
+      return {
+        id: game.id,
+        slug: game.slug,
+        title: game.name,
+        released: game.released,
+        imageUrl: game.background_image ?? "",
+        metacriticScore: game.metacritic,
+        summary: game.description_raw,
+        genres: game.genres.map((genre: {id: number, name: string, slug: string}) => {
+          return{
+            id: genre.id,
+            slug: genre.slug,
+            name: genre.name
+          }
+        }),
+        platforms: game.platforms.map((platform: {platform: {id: number, name: string, slug: string}}) => {
+          return {
+            id: platform.platform.id,
+            slug: platform.platform.slug,
+            name: platform.platform.name
+          }
+        })
+      }
+    }))
+
+    console.log(results)
   }
 
   async createOrUpdate(game: GameDto){
@@ -133,39 +159,4 @@ export class GamesService {
     return gamesObj
   }
 
-  async createPlayerGame(userId: string, data: SetPlayerGameBodyDTO){
-    console.log("User Id ", userId)
-    console.log(data)
-    const query = `
-      MATCH (p:Player { id: $userId })
-      MATCH (g:Game { id: $gameId })
-
-      FOREACH (_ IN CASE WHEN $status = 'has_finished' THEN [1] ELSE [] END |
-        MERGE (p)-[r:FINISHED]->(g)
-        SET r.hours_played = $hours,
-            r.finishedAt = $finishedAt,
-            r.score = $score
-      )
-
-      FOREACH (_ IN CASE WHEN $status = 'is_playing' THEN [1] ELSE [] END |
-        MERGE (p)-[r:IS_PLAYING]->(g)
-        SET r.hours_played = $hours,
-            r.currentScore = $score
-      )
-
-      RETURN p, g
-    `
-
-    const params = {
-      userId,
-      gameId: data.gameId,
-      status: data.status,
-      hours: Number(data.hours_played ?? 0),
-      finishedAt: data.finishedAt
-        ? new Date(data.finishedAt).toISOString()
-        : null,
-      score: data.score !== undefined ? Number(data.score) : null
-    }
-    const result = await this.neo4jService.getSession().run(query, params)
-  }
 }
