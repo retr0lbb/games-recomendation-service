@@ -1,6 +1,12 @@
 version: "3.9"
 
 services:
+  api:
+    build: .
+    ports: 
+      - "3000:3000"
+    env_file:
+      - .env.local
   neo4j:
     image: neo4j:5
     container_name: neo4j
