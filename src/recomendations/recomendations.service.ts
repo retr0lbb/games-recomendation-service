@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { Neo4jService } from 'src/neo4j/neo4j.service';
+import { object } from 'zod';
+import { SaveRecommendationsDto } from './dto/save-recomendations-dto';
 
 @Injectable()
 export class RecomendationsService {
     constructor(private readonly neo4jService: Neo4jService) {}
 
-
-    async recommendAGame() {
+    async recommendAGame(id: string) {
         const query = `
-            MATCH (me:Player {id: "b50ac6de-f2b3-42c8-8224-d69eeed0b817"})-[myRel:IS_PLAYING|FINISHED]->(myGame:Game)
+            MATCH (me:Player {id: $id})-[myRel:IS_PLAYING|FINISHED]->(myGame:Game)
 
             MATCH (other:Player)-[otherRel:IS_PLAYING|FINISHED]->(myGame)
             WHERE other <> me
@@ -20,12 +21,10 @@ export class RecomendationsService {
                 CASE WHEN otherRel:FINISHED THEN 1.3 ELSE 1.0 END
             ) AS similarityScore
 
-            // 3. Jogos bem avaliados por esses players
             MATCH (other)-[recRel:IS_PLAYING|FINISHED]->(recGame:Game)
             WHERE recRel.score >= 7
             AND NOT (me)-[:IS_PLAYING|FINISHED]->(recGame)
 
-            // 4. Plataformas do usuário
             MATCH (recGame)-[:AVAILABLE_ON]->(plat:Platform)
             MATCH (me)-[:OWNS]->(plat)
 
@@ -42,8 +41,10 @@ export class RecomendationsService {
             RETURN
             recGame.id AS gameId,
             recGame.title AS title,
+            recGame.imageUrl as image,
+            recGame.metacriticScore as metaScore,
+            recGame.summary as summary,
 
-            // Score final
             sum(similarityScore * interactionWeight)
             * (1 + genreMatchCount * 0.2)
             AS recommendationScore,
@@ -52,6 +53,53 @@ export class RecomendationsService {
             ORDER BY recommendationScore DESC
             LIMIT 20
         `
-        
+
+        const params = {
+            id: id
+        }
+
+        const result = await this.neo4jService.getSession().run(query, params)
+
+        return result.records.map(rec => {
+
+            const objRec = rec.toObject()
+
+            const formatedScore: number = objRec.recommendationScore
+
+            console.log(objRec)
+
+            return {
+                gameId: objRec.gameId.low,
+                title: objRec.title,
+                score: formatedScore.toFixed(2),
+                image: objRec.image,
+                metacriticScore: objRec.score,
+                summary: objRec.summary
+            }
+        })
+    }
+
+    async saveRecommendations(userId: string, body: SaveRecommendationsDto){
+        const query = `
+            MATCH (p:Player {id: $id})
+            UNWIND $game AS game
+                MATCH(g:Game {id: toInteger(game.gameId)})
+
+                MERGE(p)-[r:SAVED_RECOMMENDATION]->(g)
+
+                ON CREATE SET
+                    r.createdAt = datetime()
+                SET 
+                    r.recommendationScore = game.recommendationScore
+
+            RETURN (p)
+        `
+        const params = {
+            id: userId,
+            game: body.games
+        }
+
+        const result = await this.neo4jService.getSession().run(query, params)
+
     }
 }
