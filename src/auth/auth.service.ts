@@ -37,7 +37,7 @@ export class AuthService {
             throw new HttpException("password not correct", HttpStatus.BAD_REQUEST)
         }
 
-        const token = this.jwt.sign({id: user.id, email: authPayload.email})
+        const token = this.jwt.sign({id: user.id, userName: user.username})
 
         return token
 

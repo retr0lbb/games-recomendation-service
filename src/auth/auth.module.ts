@@ -5,6 +5,7 @@ import { Neo4jModule } from 'src/neo4j/neo4j.module';
 import { JwtModule } from '@nestjs/jwt';
 import {PassportModule} from "@nestjs/passport"
 import { LocalStrategy } from './strategies/local.strategy';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [Neo4jModule, PassportModule,  JwtModule.register({
@@ -12,6 +13,6 @@ import { LocalStrategy } from './strategies/local.strategy';
     signOptions: {expiresIn: '2h'}
   })],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy]
+  providers: [AuthService, LocalStrategy, JwtStrategy]
 })
 export class AuthModule {}
