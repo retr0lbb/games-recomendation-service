@@ -40,11 +40,18 @@ export class Neo4jService{
             REQUIRE p.name IS UNIQUE;
         `
 
+        const query3 = `
+            CREATE CONSTRAINT player_email_unique IF NOT EXISTS
+            FOR (p:Player)
+            REQUIRE p.email IS UNIQUE; 
+        `
+
         const session = this.getSession();
         const tx = session.beginTransaction();
         try {
             await tx.run(query1);
             await tx.run(query2);
+            await tx.run(query3)
             await tx.commit();
         } catch (e) {
             await tx.rollback();
