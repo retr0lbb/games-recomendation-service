@@ -3,19 +3,15 @@ import { CreatePlayerDto } from './dto/create-player.dto';
 import { Neo4jService } from 'src/neo4j/neo4j.service';
 import crypto from "node:crypto"
 import { AddGameToPlayerDto } from './dto/setPlayerGame';
-import { resourceLimits } from 'node:worker_threads';
 import { UpdatePlayerStatusDto } from './dto/update-play-status';
 
 @Injectable()
 export class PlayerService {
   constructor(private readonly neo4jService: Neo4jService){}
 
-  async create(createPlayerDto: CreatePlayerDto) {
-    const newPlayerId = crypto.randomUUID()
-
+  async assignPlayerPlatforms(createPlayerDto: CreatePlayerDto, userId: string) {
     const query = `
       MERGE (p:Player { id: $id })
-      SET p.name = $name
 
       WITH p
 
@@ -27,14 +23,11 @@ export class PlayerService {
     `
 
     const params = {
-      name: createPlayerDto.name,
-      id: newPlayerId,
+      id: userId,
       platforms: createPlayerDto.platforms
     }
 
-    const result = await this.neo4jService.getSession().run(query, params)
-
-    return result.records[0].get("p").properties
+    await this.neo4jService.getSession().run(query, params)
   }
 
   async updatePlayingStatus(createPlayerDto: CreatePlayerDto) {
@@ -54,7 +47,6 @@ export class PlayerService {
     `
 
     const params = {
-      name: createPlayerDto.name,
       id: newPlayerId,
       platforms: createPlayerDto.platforms
     }
