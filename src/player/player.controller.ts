@@ -22,15 +22,27 @@ export class PlayerController {
       throw new UnauthorizedException()
     }
 
-    const result = await this.playerService.assignPlayerPlatforms(body, id)
+    await this.playerService.assignPlayerPlatforms(body, id)
 
-    return {result}
+    const response = {
+      status: 201,
+      message: "platforms added to user!"
+    }
+
+    return response
   }
 
 
-  @Post("/:userId/game")
-  async setPlayerGame(@Param("userId") userId: string, @Body(new ZodValidationPipe(addGameToPlayer)) body: AddGameToPlayerDto) {
-    await this.playerService.createPlayerGame(userId, body)
+  @Post("/game")
+  @UseGuards(JwtAuthGuard)
+  async setPlayerGame(@Req() req: Request, @Body(new ZodValidationPipe(addGameToPlayer)) body: AddGameToPlayerDto) {
+  
+    const { id } = req.user as JwtPayload
+
+    if(!id){
+      throw new UnauthorizedException()
+    }
+    await this.playerService.createPlayerGame(id, body)
 
     const response = {
       status: 201,
@@ -40,20 +52,35 @@ export class PlayerController {
     return response
   }
 
-  @Get("/:userId/game")
-  async getPlayerGames(@Param("userId") userId: string){
-    const result = await this.playerService.getPlayerGames(userId)
+  @Get("/game")
+  @UseGuards(JwtAuthGuard)
+  async getPlayerGames(@Req() req: Request){
+    const { id } = req.user as JwtPayload
+
+    if(!id){
+      throw new UnauthorizedException()
+    }
+
+    const result = await this.playerService.getPlayerGames(id)
 
     return {...result}
   }
 
-  @Put("/:userId/game/:gameId")
+  @Put("/game/:gameId")
+  @UseGuards(JwtAuthGuard)
   async updateGameplayStatus(
-    @Param("userId") userId: string, 
-    @Param("gameId") gameId: number, 
-    @Body(new ZodValidationPipe(updatePlayStatusSchema)) body: UpdatePlayerStatusDto){
+    @Param("gameId") gameId: number,
+    @Req() req: Request, 
+    @Body(new ZodValidationPipe(updatePlayStatusSchema)) body: UpdatePlayerStatusDto
+  )
+    {
+      const { id } = req.user as JwtPayload
+
+      if(!id){
+        throw new UnauthorizedException()
+      }
       
-      const result = await this.playerService.updatePlayStatus(userId, gameId, body)
+      const result = await this.playerService.updatePlayStatus(id, gameId, body)
 
       return result
   }
