@@ -9,7 +9,6 @@ import { RegisterPayload } from './dto/register.dto';
 export class AuthService {
     constructor (private readonly neo4j: Neo4jService, private readonly jwt: JwtService) {}
     async validateUser(authPayload: LoginPayload){
-
         const searchQuery = `
             MATCH(p:Player) 
             WHERE p.email = $email
@@ -21,13 +20,11 @@ export class AuthService {
         }
         const response = await this.neo4j.getSession().run(searchQuery, searchParams)
 
-
         if(!response.records || response.records.length === 0){
             throw new HttpException("User Not Found", HttpStatus.NOT_FOUND)
         }
 
         const user = response.records[0].get("p").properties
-
 
         if(!user){
             throw new HttpException("User Not Found", HttpStatus.NOT_FOUND)
@@ -44,7 +41,6 @@ export class AuthService {
     }
 
     async createUser(registerPayload: RegisterPayload){
-
         const session = this.neo4j.getSession()
 
         const existingUserResults = await session

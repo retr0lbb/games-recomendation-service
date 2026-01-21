@@ -13,10 +13,10 @@ export class AuthController {
     constructor(private readonly authService: AuthService) {}
     @Post("/login")
     @UseGuards(LocalGuard)
-    async login(@Body(new ZodValidationPipe(loginPayloadSchema)) authPayload: LoginPayload){
-        const token = await this.authService.validateUser(authPayload)
-        return {token} 
+    async login(@Req() req: Request){
+        return {token: req.user}
     }
+
     @Post("/register")
     async register(@Body(new ZodValidationPipe(registerPayloadSchema)) registerPayload: RegisterPayload){
         await this.authService.createUser(registerPayload)
