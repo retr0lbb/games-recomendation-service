@@ -7,6 +7,8 @@ services:
       - "3000:3000"
     env_file:
       - .env.local
+    depends_on:
+      - neo4j
   neo4j:
     image: neo4j:5
     container_name: neo4j
